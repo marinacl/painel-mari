@@ -196,8 +196,8 @@ html,body{height:100%;background:#0a0a0a;color:#e8e4de;font-family:'Jost',sans-s
 .ttag:hover{border-color:#555;color:#e8e8e8}
 .tag-add{font-size:0.56rem;padding:1px 5px;border-radius:2px;background:none;border:1px dashed #222;color:#444;cursor:pointer;letter-spacing:0.06em;transition:all 0.12s;font-family:'IBM Plex Mono',monospace}
 .tag-add:hover{border-color:#555;color:#666}
-.tdel{opacity:0;background:none;border:none;color:#444;cursor:pointer;font-size:0.9rem;padding:0 2px;line-height:1;flex-shrink:0;transition:opacity 0.12s;margin-top:1px}
-.task:hover .tdel,.shop-item:hover .sdel{opacity:0.4}
+.tdel{opacity:0.35;background:none;border:none;color:#555;cursor:pointer;font-size:0.9rem;padding:0 4px;line-height:1;flex-shrink:0;transition:opacity 0.12s;margin-top:1px}
+.task:hover .tdel,.shop-item:hover .sdel{opacity:0.6}
 .tdel:hover,.sdel:hover{opacity:1!important;color:#c04040}
 .add-area{margin:0.8rem 18px 0;padding:0.7rem;border:1px dashed #222;border-radius:4px;background:transparent;transition:border-color 0.15s}
 .add-area:focus-within{border-color:#555}
@@ -224,7 +224,7 @@ html,body{height:100%;background:#0a0a0a;color:#e8e4de;font-family:'Jost',sans-s
 .ptag-urgente{background:#1a0a0a;border-color:#5a2020;color:#c07070}
 .ptag-eletivo{background:#0a0f1a;border-color:#203050;color:#7090c0}
 .ptag-desejo{background:#0a1008;border-color:#1a3010;color:#70a060}
-.sdel{opacity:0;background:none;border:none;color:#444;cursor:pointer;font-size:0.9rem;padding:0 2px;line-height:1;flex-shrink:0;transition:opacity 0.12s;margin-top:1px}
+.sdel{opacity:0.35;background:none;border:none;color:#555;cursor:pointer;font-size:0.9rem;padding:0 4px;line-height:1;flex-shrink:0;transition:opacity 0.12s;margin-top:1px}
 /* export */
 .export-wrap{margin:1.8rem 18px 0;padding-top:1.2rem;border-top:1px solid #1e1e1e}
 .export-label{font-size:0.57rem;text-transform:uppercase;letter-spacing:0.18em;color:#444;margin-bottom:0.6rem}
@@ -282,6 +282,7 @@ html,body{height:100%;background:#0a0a0a;color:#e8e4de;font-family:'Jost',sans-s
 .tr-alert-item:last-child{border-bottom:none}
 .tr-footer{padding:10px 18px 24px;border-top:1px solid #1A1614;background:#0A0906;font-size:9px;color:#2A2018;text-align:center;line-height:2}
 </style>
+
 <!-- Firebase CDN -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -802,16 +803,48 @@ function buildWeekBars(){
   }
 }
 const MOOD_LABELS={otimo:'😄 Muito bem',bem:'🙂 Bem',neutro:'😐 Neutro',mal:'😔 Mal',muitoMal:'😞 Muito mal'};
+let editingDk = null;
+
 function openModal(dk){
+  editingDk = dk;
   const data=loadDay(dk);const date=new Date(dk+'T12:00:00');
   document.getElementById('modal-date').textContent=date.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  const isToday = dk === acTodayKey;
   let done=0;AC_HABITS.forEach(h=>{if(data[h.key])done++;});
   document.getElementById('modal-score').textContent=done+' de '+AC_HABITS.length+' hábitos · '+Math.round((done/AC_HABITS.length)*100)+'%';
   const list=document.getElementById('modal-habits');list.innerHTML='';
-  AC_HABITS.forEach(h=>{const isDone=!!data[h.key];const item=document.createElement('div');item.className='modal-habit'+(isDone?' done':'');item.innerHTML=`<div class="modal-dot"></div><span>${h.label}</span>`;list.appendChild(item);});
+  AC_HABITS.forEach(h=>{
+    const isDone=!!data[h.key];
+    const item=document.createElement('div');
+    item.className='modal-habit'+(isDone?' done':'');
+    item.style.cursor='pointer';
+    item.innerHTML=`<div class="modal-dot"></div><span>${h.label}</span>`;
+    item.onclick=()=>{
+      data[h.key]=!data[h.key];
+      saveDay(dk,data);
+      if(dk===acTodayKey){acData=data;updateAcSummary();document.querySelectorAll('[data-key="'+h.key+'"]').forEach(el=>{el.classList.toggle('checked',!!data[h.key]);});}
+      openModal(dk);
+    };
+    list.appendChild(item);
+  });
   const ci=document.getElementById('modal-checkin-section');ci.innerHTML='';
   const hasCi=data._ci_mood||data._ci_fadiga!=null||data._ci_fog!=null||data._ci_cycle;
-  if(hasCi){ci.innerHTML='<div class="modal-section-title">Check-in do dia</div>';const rows=[[data._ci_mood,'Humor',MOOD_LABELS[data._ci_mood]||data._ci_mood],[data._ci_fadiga!=null,'Fadiga',data._ci_fadiga+'/10'],[data._ci_fog!=null,'Brain fog',data._ci_fog+'/10'],[data._ci_cycle,'Menstruada',data._ci_cycle==='sim'?'Sim':'Não']].filter(r=>r[0]).map(r=>[r[1],r[2]]);rows.forEach(([label,val])=>{const row=document.createElement('div');row.className='modal-checkin-row';row.innerHTML=`<span>${label}</span><span class="modal-checkin-val">${val}</span>`;ci.appendChild(row);});}
+  if(hasCi){
+    ci.innerHTML='<div class="modal-section-title">Check-in do dia</div>';
+    const rows=[[data._ci_mood,'Humor',MOOD_LABELS[data._ci_mood]||data._ci_mood],[data._ci_fadiga!=null,'Fadiga',data._ci_fadiga+'/10'],[data._ci_fog!=null,'Brain fog',data._ci_fog+'/10'],[data._ci_cycle,'Menstruada',data._ci_cycle==='sim'?'Sim':'Não']].filter(r=>r[0]).map(r=>[r[1],r[2]]);
+    rows.forEach(([label,val])=>{const row=document.createElement('div');row.className='modal-checkin-row';row.innerHTML=`<span>${label}</span><span class="modal-checkin-val">${val}</span>`;ci.appendChild(row);});
+  }
+  // Add clear day button for past days
+  if(!isToday){
+    const clearBtn=document.createElement('button');
+    clearBtn.style.cssText='margin-top:14px;width:100%;padding:9px;border:1px solid #c47a5a33;background:transparent;color:#c47a5a;font-family:Jost,sans-serif;font-size:9px;font-weight:200;letter-spacing:0.25em;text-transform:uppercase;border-radius:5px;cursor:pointer';
+    clearBtn.textContent='Limpar dia';
+    clearBtn.onclick=()=>{
+      const empty={};saveDay(dk,empty);
+      closeModalBtn();buildCalendar();buildWeekBars();
+    };
+    ci.appendChild(clearBtn);
+  }
   document.getElementById('modal-overlay').classList.add('open');
 }
 function closeModal(e){if(e.target===document.getElementById('modal-overlay'))closeModalBtn();}
@@ -1185,8 +1218,9 @@ function scheduleSave(){
 async function saveToFirebase(){
   if(!currentUser)return;
   try{
-    await db.collection('mari').doc('tasks').set({data:JSON.stringify(tasks)});
-    await db.collection('mari').doc('shop').set({data:JSON.stringify(shop)});
+    const ref=db.collection('users').doc(currentUser.uid).collection('data');
+    await ref.doc('tasks').set({data:JSON.stringify(tasks)});
+    await ref.doc('shop').set({data:JSON.stringify(shop)});
     showSync('saved');
   }catch(e){console.error(e);showSync('error');}
 }
@@ -1194,14 +1228,14 @@ async function saveToFirebase(){
 async function saveDayToFirebase(dk,data){
   if(!currentUser)return;
   try{
-    await db.collection('mari').doc('ac_'+dk).set({data:JSON.stringify(data)});
+    await db.collection('users').doc(currentUser.uid).collection('data').doc('ac_'+dk).set({data:JSON.stringify(data)});
   }catch(e){console.error(e);}
 }
 
 async function saveTrChecksToFirebase(){
   if(!currentUser)return;
   try{
-    await db.collection('mari').doc('trChecks').set({data:JSON.stringify(trChecks)});
+    await db.collection('users').doc(currentUser.uid).collection('data').doc('trChecks').set({data:JSON.stringify(trChecks)});
   }catch(e){console.error(e);}
 }
 
@@ -1210,11 +1244,12 @@ async function saveTrChecksToFirebase(){
 async function loadFromFirebase(){
   showSync('saving');
   try{
+    const ref=db.collection('users').doc(currentUser.uid).collection('data');
     const [tSnap,sSnap,trSnap,acSnap]=await Promise.all([
-      db.collection('mari').doc('tasks').get(),
-      db.collection('mari').doc('shop').get(),
-      db.collection('mari').doc('trChecks').get(),
-      db.collection('mari').doc('ac_'+acTodayKey).get(),
+      ref.doc('tasks').get(),
+      ref.doc('shop').get(),
+      ref.doc('trChecks').get(),
+      ref.doc('ac_'+acTodayKey).get(),
     ]);
     if(tSnap.exists){const d=JSON.parse(tSnap.data().data);if(d&&d.length){tasks=d;localStorage.setItem('mari_tasks',JSON.stringify(tasks));}}
     if(sSnap.exists){const d=JSON.parse(sSnap.data().data);if(d&&d.length){shop=d;localStorage.setItem('mari_shop',JSON.stringify(shop));}}
