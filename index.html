@@ -282,6 +282,24 @@ html,body{height:100%;background:#0a0a0a;color:#e8e4de;font-family:'Jost',sans-s
 .tr-alert-item:last-child{border-bottom:none}
 .tr-footer{padding:10px 18px 24px;border-top:1px solid #1A1614;background:#0A0906;font-size:9px;color:#2A2018;text-align:center;line-height:2}
 </style>
+<!-- Firebase CDN -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBT0cb0cW5BCKo5a6s26fFkQzXS23qTVDQ",
+  authDomain: "painelpessoalmcl.firebaseapp.com",
+  projectId: "painelpessoalmcl",
+  storageBucket: "painelpessoalmcl.firebasestorage.app",
+  messagingSenderId: "352242832247",
+  appId: "1:352242832247:web:765b29605098148a710772"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const provider = new firebase.auth.GoogleAuthProvider();
+</script>
 </head>
 <body>
 <div class="shell">
@@ -627,7 +645,7 @@ html,body{height:100%;background:#0a0a0a;color:#e8e4de;font-family:'Jost',sans-s
   </div>
 </div>
 
-<script type="module">
+<script type="module" id="mainScript">
 // ══ MAIN NAV ══
 function switchMain(name,btn){
   document.querySelectorAll('.maintab').forEach(t=>t.classList.remove('active'));
@@ -657,7 +675,7 @@ const AC_HABITS=[
 ];
 function dateKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function loadDay(dk){try{return JSON.parse(localStorage.getItem('ac_'+dk)||'{}');}catch{return {};}}
-function saveDay(dk,data){localStorage.setItem('ac_'+dk,JSON.stringify(data));}
+function saveDay(dk,data){localStorage.setItem('ac_'+dk,JSON.stringify(data));saveDayToFirebase(dk,data);}
 let acData=loadDay(acTodayKey);
 let bottleCount=acData._bottles||0,cupCount=acData._cups||0;
 let ciMood=acData._ci_mood||null,ciFadiga=acData._ci_fadiga!=null?acData._ci_fadiga:null;
@@ -817,7 +835,7 @@ function todoTab(name,btn){
   document.querySelectorAll('.todo-pane').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');document.getElementById('todo-'+name).classList.add('active');
 }
-function saveTasks(){localStorage.setItem('mari_tasks',JSON.stringify(tasks));renderTasks();}
+function saveTasks(){localStorage.setItem('mari_tasks',JSON.stringify(tasks));renderTasks();scheduleSave();}
 function addTask(){
   const inp=document.getElementById('tInput'),txt=inp.value.trim();if(!txt)return;
   tasks.push({id:Date.now()+Math.random(),text:txt,day:document.getElementById('tDay').value,tags:[],done:false});
@@ -857,7 +875,7 @@ function updateTaskExport(){
   tasks.forEach(t=>{const tags=t.tags&&t.tags.length?' ['+t.tags.join(', ')+']':'';const day=t.day&&t.day!=='sem_dia'?' ('+t.day+')':'';lines.push(`${t.done?'✓':'○'} ${t.text}${day}${tags}`);});
   document.getElementById('tExport').textContent=lines.join('\n')||'—';
 }
-function saveShop(){localStorage.setItem('mari_shop',JSON.stringify(shop));renderShop();}
+function saveShop(){localStorage.setItem('mari_shop',JSON.stringify(shop));renderShop();scheduleSave();}
 function addShopItem(){
   const inp=document.getElementById('cInput'),txt=inp.value.trim();if(!txt)return;
   shop.push({id:Date.now()+Math.random(),text:txt,priority:document.getElementById('cPriority').value,time:document.getElementById('cTime').value,done:false});
@@ -952,7 +970,7 @@ if(!shop.length){shop=[
 // ══════════════════════════════════════════
 const TR_CHECKS_KEY='camino-v4-checks';
 let trChecks=JSON.parse(localStorage.getItem(TR_CHECKS_KEY)||'{}');
-function saveTrChecks(){localStorage.setItem(TR_CHECKS_KEY,JSON.stringify(trChecks));}
+function saveTrChecks(){localStorage.setItem(TR_CHECKS_KEY,JSON.stringify(trChecks));saveTrChecksToFirebase();}
 function trIsDone(exId,session){return !!(trChecks[exId]&&trChecks[exId][session]);}
 function trToggle(exId,session){trChecks[exId]={...(trChecks[exId]||{}),[session]:!trIsDone(exId,session)};saveTrChecks();renderTrPhase();}
 
@@ -1145,23 +1163,7 @@ function renderTrAlertas(){
 // ══════════════════════════════════════════
 // FIREBASE SYNC
 // ══════════════════════════════════════════
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBT0cb0cW5BCKo5a6s26fFkQzXS23qTVDQ",
-  authDomain: "painelpessoalmcl.firebaseapp.com",
-  projectId: "painelpessoalmcl",
-  storageBucket: "painelpessoalmcl.firebasestorage.app",
-  messagingSenderId: "352242832247",
-  appId: "1:352242832247:web:765b29605098148a710772"
-};
-
-const fbApp = initializeApp(firebaseConfig);
-const db = getFirestore(fbApp);
-const auth = getAuth(fbApp);
-const provider = new GoogleAuthProvider();
+// Firebase loaded via CDN scripts in <head>
 let currentUser = null;
 
 // Sync indicator
@@ -1181,51 +1183,43 @@ function scheduleSave(){
 }
 
 async function saveToFirebase(){
+  if(!currentUser)return;
   try{
-    await setDoc(doc(db,'mari','tasks'),{data:JSON.stringify(tasks)});
-    await setDoc(doc(db,'mari','shop'),{data:JSON.stringify(shop)});
+    await db.collection('mari').doc('tasks').set({data:JSON.stringify(tasks)});
+    await db.collection('mari').doc('shop').set({data:JSON.stringify(shop)});
     showSync('saved');
   }catch(e){console.error(e);showSync('error');}
 }
 
 async function saveDayToFirebase(dk,data){
+  if(!currentUser)return;
   try{
-    await setDoc(doc(db,'mari','ac_'+dk),{data:JSON.stringify(data)});
-    showSync('saved');
-  }catch(e){console.error(e);showSync('error');}
-}
-
-async function saveTrChecksToFirebase(){
-  try{
-    await setDoc(doc(db,'mari','trChecks'),{data:JSON.stringify(trChecks)});
+    await db.collection('mari').doc('ac_'+dk).set({data:JSON.stringify(data)});
   }catch(e){console.error(e);}
 }
 
-// Override save functions to also sync
-const _origSaveTasks=saveTasks;
-function saveTasks(){localStorage.setItem('mari_tasks',JSON.stringify(tasks));renderTasks();scheduleSave();}
-const _origSaveShop=saveShop;
-function saveShop(){localStorage.setItem('mari_shop',JSON.stringify(shop));renderShop();scheduleSave();}
-const _origSaveDay=saveDay;
-function saveDay(dk,data){localStorage.setItem('ac_'+dk,JSON.stringify(data));saveDayToFirebase(dk,data);}
-const _origSaveTrChecks=saveTrChecks;
-function saveTrChecks(){localStorage.setItem(TR_CHECKS_KEY,JSON.stringify(trChecks));saveTrChecksToFirebase();}
+async function saveTrChecksToFirebase(){
+  if(!currentUser)return;
+  try{
+    await db.collection('mari').doc('trChecks').set({data:JSON.stringify(trChecks)});
+  }catch(e){console.error(e);}
+}
+
 
 // Load from Firebase on start, fallback to localStorage
 async function loadFromFirebase(){
   showSync('saving');
   try{
-    const [tSnap,sSnap,trSnap]=await Promise.all([
-      getDoc(doc(db,'mari','tasks')),
-      getDoc(doc(db,'mari','shop')),
-      getDoc(doc(db,'mari','trChecks')),
+    const [tSnap,sSnap,trSnap,acSnap]=await Promise.all([
+      db.collection('mari').doc('tasks').get(),
+      db.collection('mari').doc('shop').get(),
+      db.collection('mari').doc('trChecks').get(),
+      db.collection('mari').doc('ac_'+acTodayKey).get(),
     ]);
-    if(tSnap.exists()){const d=JSON.parse(tSnap.data().data);if(d&&d.length){tasks=d;localStorage.setItem('mari_tasks',JSON.stringify(tasks));}}
-    if(sSnap.exists()){const d=JSON.parse(sSnap.data().data);if(d&&d.length){shop=d;localStorage.setItem('mari_shop',JSON.stringify(shop));}}
-    if(trSnap.exists()){const d=JSON.parse(trSnap.data().data);if(d){trChecks=d;localStorage.setItem(TR_CHECKS_KEY,JSON.stringify(trChecks));}}
-    // load today's ac data
-    const acSnap=await getDoc(doc(db,'mari','ac_'+acTodayKey));
-    if(acSnap.exists()){
+    if(tSnap.exists){const d=JSON.parse(tSnap.data().data);if(d&&d.length){tasks=d;localStorage.setItem('mari_tasks',JSON.stringify(tasks));}}
+    if(sSnap.exists){const d=JSON.parse(sSnap.data().data);if(d&&d.length){shop=d;localStorage.setItem('mari_shop',JSON.stringify(shop));}}
+    if(trSnap.exists){const d=JSON.parse(trSnap.data().data);if(d){trChecks=d;localStorage.setItem(TR_CHECKS_KEY,JSON.stringify(trChecks));}}
+    if(acSnap.exists){
       const d=JSON.parse(acSnap.data().data);
       acData=d;
       bottleCount=acData._bottles||0;cupCount=acData._cups||0;
@@ -1248,7 +1242,7 @@ function hideLoginScreen(){
 }
 window.doGoogleLogin = async function(){
   try{
-    await signInWithPopup(auth, provider);
+    await auth.signInWithPopup(provider);
   }catch(e){
     console.error(e);
     document.getElementById('loginError').textContent='Erro ao fazer login. Tenta de novo.';
@@ -1275,16 +1269,41 @@ async function initApp(){
   renderTrPhase();
 }
 
-onAuthStateChanged(auth, async (user) => {
+auth.onAuthStateChanged(async (user) => {
   if(user){
     currentUser = user;
-    document.getElementById('syncIndicator').title = 'UID: ' + user.uid;
+    const indicator = document.getElementById('syncIndicator');
+    if(indicator) indicator.title = 'UID: ' + user.uid;
     hideLoginScreen();
     await initApp();
   } else {
     showLoginScreen();
   }
 });
+
+// Expose all functions called from HTML to global scope
+window.switchMain=switchMain;
+window.acTab=acTab;
+window.todoTab=todoTab;
+window.trTab=trTab;
+window.acToggle=acToggle;
+window.toggle=acToggle;
+window.toggleSingle=acToggle;
+window.selectMood=selectMood;
+window.toggleFogSub=toggleFogSub;
+window.selectCycle=selectCycle;
+window.bodyTap=bodyTap;
+window.confirmPain=confirmPain;
+window.removePain=removePain;
+window.saveCheckin=saveCheckin;
+window.calNav=calNav;
+window.closeModal=closeModal;
+window.closeModalBtn=closeModalBtn;
+window.addTask=addTask;
+window.addShopItem=addShopItem;
+window.copyText=copyText;
+window.trToggle=trToggle;
+window.doGoogleLogin=doGoogleLogin;
 </script>
 <!-- LOGIN SCREEN -->
 <div id="loginScreen" style="display:none;position:fixed;inset:0;background:#0a0a0a;z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;padding:2rem">
