@@ -656,8 +656,8 @@ const AC_HABITS=[
   {key:'supl_day',label:'Suplementos (manhã)'},{key:'supl_night',label:'Suplementos (noite)'},
 ];
 function dateKey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function loadDay(dk){try{if(window._acCache&&window._acCache[dk])return window._acCache[dk];const l=localStorage.getItem('ac_'+dk);return l?JSON.parse(l):{}}catch{return {};}}
-function saveDay(dk,data){acData=data;window._acCache[dk]=data;saveDayToFirebase(dk,data);localStorage.setItem('ac_'+dk,JSON.stringify(data));}
+function loadDay(dk){try{return JSON.parse(localStorage.getItem('ac_'+dk)||'{}');}catch{return {};}}
+function saveDay(dk,data){localStorage.setItem('ac_'+dk,JSON.stringify(data));}
 let acData=loadDay(acTodayKey);
 let bottleCount=acData._bottles||0,cupCount=acData._cups||0;
 let ciMood=acData._ci_mood||null,ciFadiga=acData._ci_fadiga!=null?acData._ci_fadiga:null;
@@ -809,15 +809,15 @@ const DNAME={seg:'Segunda',ter:'Terça',qua:'Quarta',qui:'Quinta',sex:'Sexta',sa
 const PTIME={este_mes:'este mês',prox_mes:'próx. mês',sem_pressa:'sem pressa'};
 const PNAME={urgente:'urgente',eletivo:'eletivo',desejo:'desejo'};
 const PTAG_CLASS={urgente:'ptag ptag-urgente',eletivo:'ptag ptag-eletivo',desejo:'ptag ptag-desejo'};
-let tasks=[];
-let shop=[];
+let tasks=JSON.parse(localStorage.getItem('mari_tasks')||'[]');
+let shop=JSON.parse(localStorage.getItem('mari_shop')||'[]');
 
 function todoTab(name,btn){
   document.querySelectorAll('.todo-subtab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('.todo-pane').forEach(p=>p.classList.remove('active'));
   btn.classList.add('active');document.getElementById('todo-'+name).classList.add('active');
 }
-// saveTasks — defined below with Firebase
+function saveTasks(){localStorage.setItem('mari_tasks',JSON.stringify(tasks));renderTasks();}
 function addTask(){
   const inp=document.getElementById('tInput'),txt=inp.value.trim();if(!txt)return;
   tasks.push({id:Date.now()+Math.random(),text:txt,day:document.getElementById('tDay').value,tags:[],done:false});
@@ -825,7 +825,7 @@ function addTask(){
 }
 function toggleTask(id){const t=tasks.find(t=>t.id===id);if(t){t.done=!t.done;saveTasks();}}
 function deleteTask(id){tasks=tasks.filter(t=>t.id!==id);saveTasks();}
-function updateTaskText(id,v){const t=tasks.find(t=>t.id===id);if(t){t.text=v;scheduleSave();}}
+function updateTaskText(id,v){const t=tasks.find(t=>t.id===id);if(t){t.text=v;localStorage.setItem('mari_tasks',JSON.stringify(tasks));updateTaskExport();}}
 function addTagToTask(id){const t=tasks.find(t=>t.id===id);if(!t)return;const n=prompt('nova tag:','');if(!n||!n.trim())return;t.tags.push(n.trim());saveTasks();}
 function removeTagFromTask(id,idx){const t=tasks.find(t=>t.id===id);if(!t)return;t.tags.splice(idx,1);saveTasks();}
 function renameTag(id,idx){const t=tasks.find(t=>t.id===id);if(!t)return;const n=prompt('renomear tag:',t.tags[idx]);if(!n||!n.trim())return;t.tags[idx]=n.trim();saveTasks();}
@@ -857,7 +857,7 @@ function updateTaskExport(){
   tasks.forEach(t=>{const tags=t.tags&&t.tags.length?' ['+t.tags.join(', ')+']':'';const day=t.day&&t.day!=='sem_dia'?' ('+t.day+')':'';lines.push(`${t.done?'✓':'○'} ${t.text}${day}${tags}`);});
   document.getElementById('tExport').textContent=lines.join('\n')||'—';
 }
-// saveShop — defined below with Firebase
+function saveShop(){localStorage.setItem('mari_shop',JSON.stringify(shop));renderShop();}
 function addShopItem(){
   const inp=document.getElementById('cInput'),txt=inp.value.trim();if(!txt)return;
   shop.push({id:Date.now()+Math.random(),text:txt,priority:document.getElementById('cPriority').value,time:document.getElementById('cTime').value,done:false});
@@ -865,7 +865,7 @@ function addShopItem(){
 }
 function toggleShop(id){const s=shop.find(s=>s.id===id);if(s){s.done=!s.done;saveShop();}}
 function deleteShop(id){shop=shop.filter(s=>s.id!==id);saveShop();}
-function updateShopText(id,v){const s=shop.find(s=>s.id===id);if(s){s.text=v;scheduleSave();}}
+function updateShopText(id,v){const s=shop.find(s=>s.id===id);if(s){s.text=v;localStorage.setItem('mari_shop',JSON.stringify(shop));updateShopExport();}}
 function cyclePriority(id){const s=shop.find(s=>s.id===id);if(!s)return;const o=['eletivo','urgente','desejo'];s.priority=o[(o.indexOf(s.priority)+1)%o.length];saveShop();}
 function cycleTime(id){const s=shop.find(s=>s.id===id);if(!s)return;const o=['este_mes','prox_mes','sem_pressa'];s.time=o[(o.indexOf(s.time)+1)%o.length];saveShop();}
 function renderShop(){
@@ -951,8 +951,8 @@ if(!shop.length){shop=[
 // TREINO
 // ══════════════════════════════════════════
 const TR_CHECKS_KEY='camino-v4-checks';
-let trChecks={};
-function saveTrChecks(){localStorage.setItem(TR_CHECKS_KEY,JSON.stringify(trChecks));saveTrChecksToFirebase();}
+let trChecks=JSON.parse(localStorage.getItem(TR_CHECKS_KEY)||'{}');
+function saveTrChecks(){localStorage.setItem(TR_CHECKS_KEY,JSON.stringify(trChecks));}
 function trIsDone(exId,session){return !!(trChecks[exId]&&trChecks[exId][session]);}
 function trToggle(exId,session){trChecks[exId]={...(trChecks[exId]||{}),[session]:!trIsDone(exId,session)};saveTrChecks();renderTrPhase();}
 
@@ -1146,7 +1146,8 @@ function renderTrAlertas(){
 // FIREBASE SYNC
 // ══════════════════════════════════════════
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBT0cb0cW5BCKo5a6s26fFkQzXS23qTVDQ",
@@ -1159,6 +1160,9 @@ const firebaseConfig = {
 
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
+const auth = getAuth(fbApp);
+const provider = new GoogleAuthProvider();
+let currentUser = null;
 
 // Sync indicator
 function showSync(state){
@@ -1203,9 +1207,9 @@ function saveTasks(){localStorage.setItem('mari_tasks',JSON.stringify(tasks));re
 const _origSaveShop=saveShop;
 function saveShop(){localStorage.setItem('mari_shop',JSON.stringify(shop));renderShop();scheduleSave();}
 const _origSaveDay=saveDay;
-// saveDay defined above
+function saveDay(dk,data){localStorage.setItem('ac_'+dk,JSON.stringify(data));saveDayToFirebase(dk,data);}
 const _origSaveTrChecks=saveTrChecks;
-// saveTrChecks defined above
+function saveTrChecks(){localStorage.setItem(TR_CHECKS_KEY,JSON.stringify(trChecks));saveTrChecksToFirebase();}
 
 // Load from Firebase on start, fallback to localStorage
 async function loadFromFirebase(){
@@ -1233,8 +1237,26 @@ async function loadFromFirebase(){
   }catch(e){console.error('Firebase load error:',e);showSync('error');}
 }
 
+// ══ LOGIN SCREEN ══
+function showLoginScreen(){
+  document.getElementById('loginScreen').style.display='flex';
+  document.querySelector('.shell').style.display='none';
+}
+function hideLoginScreen(){
+  document.getElementById('loginScreen').style.display='none';
+  document.querySelector('.shell').style.display='flex';
+}
+window.doGoogleLogin = async function(){
+  try{
+    await signInWithPopup(auth, provider);
+  }catch(e){
+    console.error(e);
+    document.getElementById('loginError').textContent='Erro ao fazer login. Tenta de novo.';
+  }
+}
+
 // ══ INIT ══
-(async function init(){
+async function initApp(){
   await loadFromFirebase();
   // autocuidado
   document.querySelectorAll('[data-key]').forEach(el=>{if(acData[el.dataset.key])el.classList.add('checked');});
@@ -1251,7 +1273,28 @@ async function loadFromFirebase(){
   renderTasks();renderShop();
   // treino
   renderTrPhase();
-})();
+}
+
+onAuthStateChanged(auth, async (user) => {
+  if(user){
+    currentUser = user;
+    document.getElementById('syncIndicator').title = 'UID: ' + user.uid;
+    hideLoginScreen();
+    await initApp();
+  } else {
+    showLoginScreen();
+  }
+});
 </script>
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" style="display:none;position:fixed;inset:0;background:#0a0a0a;z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;padding:2rem">
+  <div style="font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;color:#e8e4de">Mari · <em style="font-style:italic;color:#c8a97e">painel</em></div>
+  <div style="font-size:0.75rem;font-family:'IBM Plex Mono',monospace;color:#555;letter-spacing:0.1em;text-align:center">acesso pessoal</div>
+  <button onclick="doGoogleLogin()" style="margin-top:1rem;display:flex;align-items:center;gap:0.8rem;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:0.9rem 1.5rem;cursor:pointer;transition:border-color 0.2s;font-family:'Jost',sans-serif" onmouseover="this.style.borderColor='#c8a97e'" onmouseout="this.style.borderColor='#2a2a2a'">
+    <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+    <span style="font-size:0.85rem;color:#e8e4de;letter-spacing:0.05em">Entrar com Google</span>
+  </button>
+  <div id="loginError" style="font-size:0.7rem;color:#c47a5a;font-family:'IBM Plex Mono',monospace"></div>
+</div>
 </body>
 </html>
