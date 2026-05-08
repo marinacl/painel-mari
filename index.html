@@ -786,7 +786,7 @@ function buildCalendar(){
     const score=getDayScore(dk),isToday=dk===acTodayKey,hasData=score>0||!!loadDay(dk)._ci_mood;
     const day=document.createElement('div');day.className='cal-day'+(isToday?' today':'')+(hasData?' has-data':'');
     day.innerHTML=`<div class="cal-day-num">${d}</div><div class="cal-dot"></div>`;
-    if(hasData||isToday)day.onclick=()=>openModal(dk);
+    day.onclick=()=>openModal(dk);
     grid.appendChild(day);
   }
 }
