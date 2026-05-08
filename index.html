@@ -496,6 +496,31 @@ const provider = new firebase.auth.GoogleAuthProvider();
             <div id="pain-dots-back"></div>
           </div>
         </div>
+        <!-- FACE -->
+        <div class="body-map-side">
+          <div class="body-map-side-label">Face / ATM</div>
+          <div class="body-svg-wrap" id="body-face" onclick="bodyTap(event,'face')">
+            <svg width="90" height="180" viewBox="0 0 100 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="50" cy="72" rx="38" ry="48" stroke="#444" stroke-width="1.2" fill="#1a1a1a"/>
+              <path d="M20 95 Q18 130 30 148 Q40 162 50 165 Q60 162 70 148 Q82 130 80 95" stroke="#444" stroke-width="1.1" fill="#1a1a1a"/>
+              <path d="M34 163 Q36 178 38 188 L62 188 Q64 178 66 163" stroke="#444" stroke-width="1" fill="#1a1a1a"/>
+              <path d="M26 62 Q35 56 44 60" stroke="#555" stroke-width="1" fill="none"/>
+              <path d="M56 60 Q65 56 74 62" stroke="#555" stroke-width="1" fill="none"/>
+              <ellipse cx="36" cy="68" rx="9" ry="6" stroke="#555" stroke-width="1" fill="#111"/>
+              <ellipse cx="64" cy="68" rx="9" ry="6" stroke="#555" stroke-width="1" fill="#111"/>
+              <circle cx="36" cy="68" r="3" fill="#333"/>
+              <circle cx="64" cy="68" r="3" fill="#333"/>
+              <path d="M46 74 Q44 88 40 92 Q50 96 60 92 Q56 88 54 74" stroke="#444" stroke-width="1" fill="none"/>
+              <path d="M36 112 Q50 122 64 112" stroke="#555" stroke-width="1.2" fill="none"/>
+              <circle cx="19" cy="100" r="3.5" fill="#2a2a2a" stroke="#5a3020" stroke-width="1"/>
+              <circle cx="81" cy="100" r="3.5" fill="#2a2a2a" stroke="#5a3020" stroke-width="1"/>
+              <path d="M20 100 Q16 118 22 138 Q28 148 34 152" stroke="#333" stroke-width="0.8" fill="none" stroke-dasharray="2,2"/>
+              <path d="M80 100 Q84 118 78 138 Q72 148 66 152" stroke="#333" stroke-width="0.8" fill="none" stroke-dasharray="2,2"/>
+              <text x="50" y="196" text-anchor="middle" font-size="5" fill="#333" font-family="sans-serif">● ATM</text>
+            </svg>
+            <div id="pain-dots-face"></div>
+          </div>
+        </div>
       </div>
       <div class="body-map-hint">Toque no corpo para marcar dor · toque no ponto para remover</div>
       <div class="pain-list" id="pain-list"></div>
@@ -734,12 +759,126 @@ function buildScaleTrack(trackId,max,currentVal,valId){
 }
 function toggleFogSub(sub){document.getElementById('fog-'+sub).classList.toggle('selected');if(ciFogSubs.includes(sub))ciFogSubs=ciFogSubs.filter(s=>s!==sub);else ciFogSubs.push(sub);}
 function selectCycle(val){ciCycle=val;document.getElementById('cycle-sim').classList.toggle('selected',val==='sim');document.getElementById('cycle-nao').classList.toggle('selected',val==='nao');}
-const BLF=(x,y)=>{if(y<0.15)return'cabeça (frente)';if(y<0.22)return'pescoço (frente)';if(x<0.35)return'ombro esq.';if(x>0.65)return'ombro dir.';if(y<0.45)return'tórax';if(y<0.58)return'abdômen';if(y<0.65)return'quadril';if(x<0.45&&y<0.82)return'coxa esq.';if(x>0.55&&y<0.82)return'coxa dir.';if(x<0.45)return'perna esq.';return'perna dir.';};
-const BLB=(x,y)=>{if(y<0.15)return'cabeça (costas)';if(y<0.22)return'pescoço (costas)';if(x<0.35)return'ombro esq. (costas)';if(x>0.65)return'ombro dir. (costas)';if(y<0.4)return'dorso superior';if(y<0.58)return'lombar';if(y<0.65)return'glúteo';if(x<0.45&&y<0.82)return'coxa esq. (costas)';if(x>0.55&&y<0.82)return'coxa dir. (costas)';if(x<0.45)return'panturrilha esq.';return'panturrilha dir.';};
+// Body map label functions — coordenadas calibradas pro SVG 100x200
+const BLF=(x,y)=>{
+  // cabeça
+  if(y<0.18){
+    if(x>0.35&&x<0.65) return 'cabeça (frente)';
+  }
+  // pescoço
+  if(y>=0.18&&y<0.22&&x>0.4&&x<0.6) return 'pescoço';
+  // braços (fora do torso)
+  if(y>=0.20&&y<0.54){
+    if(x<0.25) return 'braço esq.';
+    if(x>0.75) return 'braço dir.';
+  }
+  // mãos
+  if(y>=0.49&&y<0.57){
+    if(x<0.22) return 'mão esq.';
+    if(x>0.78) return 'mão dir.';
+  }
+  // ombros
+  if(y>=0.20&&y<0.28){
+    if(x>=0.25&&x<0.38) return 'ombro esq.';
+    if(x>0.62&&x<=0.75) return 'ombro dir.';
+  }
+  // tórax
+  if(y>=0.22&&y<0.42&&x>=0.28&&x<=0.72) return 'tórax';
+  // abdômen
+  if(y>=0.42&&y<0.54&&x>=0.28&&x<=0.72) return 'abdômen';
+  // quadril/virilha
+  if(y>=0.54&&y<0.62&&x>=0.28&&x<=0.72) return 'quadril';
+  // coxa
+  if(y>=0.62&&y<0.80){
+    if(x<0.50) return 'coxa esq.';
+    return 'coxa dir.';
+  }
+  // joelho
+  if(y>=0.80&&y<0.86){
+    if(x<0.50) return 'joelho esq.';
+    return 'joelho dir.';
+  }
+  // canela/perna
+  if(y>=0.86&&y<0.93){
+    if(x<0.50) return 'canela esq.';
+    return 'canela dir.';
+  }
+  // tornozelo/pé
+  if(y>=0.93){
+    if(x<0.50) return 'tornozelo / pé esq.';
+    return 'tornozelo / pé dir.';
+  }
+  return 'frente';
+};
+const BLB=(x,y)=>{
+  if(y<0.18){
+    if(x>0.35&&x<0.65) return 'cabeça (costas)';
+  }
+  if(y>=0.18&&y<0.22&&x>0.4&&x<0.6) return 'pescoço (costas)';
+  if(y>=0.20&&y<0.54){
+    if(x<0.25) return 'braço esq. (costas)';
+    if(x>0.75) return 'braço dir. (costas)';
+  }
+  if(y>=0.20&&y<0.28){
+    if(x>=0.25&&x<0.38) return 'ombro esq. (costas)';
+    if(x>0.62&&x<=0.75) return 'ombro dir. (costas)';
+  }
+  if(y>=0.22&&y<0.40&&x>=0.28&&x<=0.72) return 'dorso superior';
+  if(y>=0.40&&y<0.54&&x>=0.28&&x<=0.72) return 'lombar';
+  if(y>=0.54&&y<0.64&&x>=0.28&&x<=0.72) return 'glúteo';
+  if(y>=0.64&&y<0.80){
+    if(x<0.50) return 'coxa esq. (costas)';
+    return 'coxa dir. (costas)';
+  }
+  if(y>=0.80&&y<0.86){
+    if(x<0.50) return 'fossa poplítea esq.';
+    return 'fossa poplítea dir.';
+  }
+  if(y>=0.86&&y<0.93){
+    if(x<0.50) return 'panturrilha esq.';
+    return 'panturrilha dir.';
+  }
+  if(y>=0.93){
+    if(x<0.50) return 'tornozelo / calcanhar esq.';
+    return 'tornozelo / calcanhar dir.';
+  }
+  return 'costas';
+};
+const BLC=(x,y)=>{
+  // mapa facial
+  if(y<0.18) return 'fronte';
+  if(y<0.30){
+    if(x<0.35) return 'têmpora esq.';
+    if(x>0.65) return 'têmpora dir.';
+    return 'fronte';
+  }
+  if(y<0.42){
+    if(x<0.38) return 'olho / zigoma esq.';
+    if(x>0.62) return 'olho / zigoma dir.';
+    return 'nariz';
+  }
+  if(y<0.55){
+    if(x<0.35) return 'ATM esq. (bruxismo)';
+    if(x>0.65) return 'ATM dir. (bruxismo)';
+    return 'lábios / boca';
+  }
+  if(y<0.68){
+    if(x<0.35) return 'mandíbula esq.';
+    if(x>0.65) return 'mandíbula dir.';
+    return 'queixo';
+  }
+  if(y<0.82){
+    if(x<0.38) return 'masseter esq.';
+    if(x>0.62) return 'masseter dir.';
+    return 'pescoço (anterior)';
+  }
+  return 'pescoço';
+};
 function bodyTap(e,side){
   const wrap=e.currentTarget,rect=wrap.getBoundingClientRect();
   const x=(e.clientX-rect.left)/rect.width,y=(e.clientY-rect.top)/rect.height;
-  const label=(side==='front'?BLF:BLB)(x,y);
+  const fn=side==='front'?BLF:side==='back'?BLB:BLC;
+  const label=fn(x,y);
   pendingPain={side,x,y,label};pendingPainScore=null;openPainPopup(label);
 }
 function openPainPopup(label){
@@ -761,8 +900,10 @@ function confirmPain(){
 }
 function removePain(idx){painPoints.splice(idx,1);acData._ci_pain=painPoints;saveDay(acTodayKey,acData);renderPainDots();renderPainList();}
 function renderPainDots(){
-  ['front','back'].forEach(side=>{
-    const container=document.getElementById('pain-dots-'+side);container.innerHTML='';
+  ['front','back','face'].forEach(side=>{
+    const container=document.getElementById('pain-dots-'+side);
+    if(!container)return;
+    container.innerHTML='';
     painPoints.forEach((p,i)=>{if(p.side!==side)return;const dot=document.createElement('div');dot.className='pain-dot';dot.style.left=(p.x*100)+'%';dot.style.top=(p.y*100)+'%';dot.textContent=p.score;dot.onclick=e=>{e.stopPropagation();removePain(i);};container.appendChild(dot);});
   });
 }
